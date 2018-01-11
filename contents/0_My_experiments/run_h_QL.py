@@ -15,7 +15,7 @@ def run_MDP():
         done = False
 
         while not done:
-            total_extrinsic_reward = 0
+            extrinsic_reward = 0
             start_state = state
             step = 0
             goal_reached = False
@@ -41,7 +41,7 @@ def run_MDP():
                       " con_e: " + str(controller.epsilon)
                       )
 
-                total_extrinsic_reward += ex_reward
+                extrinsic_reward += ex_reward
                 state = state_
                 step += 1
                 total_step += 1
@@ -51,16 +51,18 @@ def run_MDP():
                 print("Goal reached!")
 
             # learning for meta_controller
-            meta_controller.learn(start_state, goal, total_extrinsic_reward, state_)
+            meta_controller.learn(start_state, goal, extrinsic_reward, state_)
             # anneal epsilon greedy rate for controller
             controller.anneal(step, goal=goal, adaptively=False, success=goal_reached)
             # anneal epsilon greedy rate for meta_controller
-            # meta_controller.anneal()
+            meta_controller.anneal()
 
             if not done:    # when goal is terminal, goal_reached = True & done = True
                 # choose a new goal
                 goal = meta_controller.choose_action(state)
                 controller.goal_attempts[goal] += 1
+
+            total_extrinsic_reward[i_episode] = total_extrinsic_reward[i_episode-1] + extrinsic_reward
         
         if (i_episode + 1) % 1000 == 0:
             if id_episode == 0:
@@ -95,6 +97,13 @@ def plot_figures():
     plt.title("Goals success rates")
     plt.savefig("Goals_success_rates.png")
 
+    # plot average reward from the environment
+    plt.figure(3)
+    x_episode = np.arange(1, num_episodes + 1)
+    average_reward = total_extrinsic_reward / x_episode
+    plt.plot(x_episode, average_reward)
+    plt.title("Average reward")
+    plt.savefig("Average_reward.png")
 
     plt.show()
 
@@ -106,20 +115,21 @@ if __name__ == "__main__":
     visits = np.zeros((12, 6))
     goal_attempts = np.zeros((12, 6))
     goal_success = np.zeros((12, 6))
+    total_extrinsic_reward = np.zeros(num_episodes)
     # controller needs to choose actions under certain goal
     controller = QLearningTable(n_actions,
                                 n_goals,
                                 learning_rate=0.00025,
                                 reward_decay=0.975,
                                 e_greedy=1,
-                                e_decrement=(1-0.1) / 12000,
+                                e_decrement=(1 - 0.1) / 12000
                                 )
     # meta_controller's action sets are to choose different goals (default goal=0)
     meta_controller = QLearningTable(n_goals,  # n_actions = n_goals, n_goals = 1 (attributes for meta_controller)
                                      learning_rate=0.00025,
                                      reward_decay=0.975,
                                      e_greedy=1,
-                                     e_decrement=(1 - 0.1) / 2000
+                                     e_decrement=(1 - 0.1) / 12000
                                      )
     run_MDP()
     for i in range(n_goals):
