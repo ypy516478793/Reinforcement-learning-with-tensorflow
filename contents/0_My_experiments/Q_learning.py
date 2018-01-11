@@ -64,7 +64,7 @@ class QLearningTable:
             goal_reached = False
         return in_reward, goal_reached
 
-    def anneal(self, steps=1, goal=0, adaptively=False):
+    def anneal(self, steps=1, goal=0, adaptively=False, success=False):
         if self.epsilon[goal] > 0.1:
             if adaptively:
                 success_rate = self.goal_success[goal] / self.goal_attempts[goal]
@@ -74,6 +74,10 @@ class QLearningTable:
                     self.epsilon[goal] = 1 - success_rate
             else:
                 self.epsilon[goal] -= self.de_anneal * steps
+
+            if success:
+                self.epsilon[goal] -= self.de_anneal * 20
+
             if self.epsilon[goal] < 0.1:
                 self.epsilon[goal] = 0.1
 
