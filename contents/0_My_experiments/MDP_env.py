@@ -25,10 +25,10 @@ class MDP_env:
             # If state 6 reached
             if self.current_state == 5:
                 self.visited_six = True
-            return self.current_state, 0.0, False
-
         if self.current_state == 0:
             if self.visited_six:
                 return self.current_state, 1.00, True
             else:
                 return self.current_state, 1.00/100.00, True
+        else:
+            return self.current_state, 0.0, False
