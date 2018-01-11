@@ -53,7 +53,7 @@ def run_MDP():
             # learning for meta_controller
             meta_controller.learn(start_state, goal, total_extrinsic_reward, state_)
             # anneal epsilon greedy rate for controller
-            controller.anneal(step, goal=goal, adaptively=False)
+            controller.anneal(step, goal=goal, adaptively=True)
             # anneal epsilon greedy rate for meta_controller
             # meta_controller.anneal()
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                                 n_goals,
                                 learning_rate=0.00025,
                                 reward_decay=0.975,
-                                e_greedy=0.1,
+                                e_greedy=1,
                                 e_decrement=(1-0.1) / 2000,
                                 )
     # meta_controller's action sets are to choose different goals (default goal=0)
@@ -119,12 +119,14 @@ if __name__ == "__main__":
                                      learning_rate=0.00025,
                                      reward_decay=0.975,
                                      e_greedy=1,
-                                     e_decrement=(1 - 0.1) / 12000
+                                     e_decrement=(1 - 0.1) / 2000
                                      )
     run_MDP()
     for i in range(n_goals):
-        print("Controller's q_table (Goal =" + str(i) + ")")
-        print(controller.q_table[i])
+        controller.q_table[i]['action'] = controller.q_table[i].idxmax(axis=1)
+        print("")
+        print("Controller's q_table (Goal = " + str(i) + "):")
+        print(controller.q_table[i].sort_index(axis=0, ascending=True))
     plot_figures()
 
 

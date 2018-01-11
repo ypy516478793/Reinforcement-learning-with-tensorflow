@@ -14,8 +14,9 @@ class MDP_env:
         if self.current_state != 0:
             # If "right" selected
             if action == 1:
-                if random.random() < 0.5 and self.current_state < 5:
-                    self.current_state += 1
+                if random.random() < 0.5:
+                    if self.current_state < 5:  # if current_state == 5, do not change current_state
+                        self.current_state += 1
                 else:
                     self.current_state -= 1
             # If "left" selected
@@ -24,10 +25,10 @@ class MDP_env:
             # If state 6 reached
             if self.current_state == 5:
                 self.visited_six = True
+            return self.current_state, 0.0, False
+
         if self.current_state == 0:
             if self.visited_six:
                 return self.current_state, 1.00, True
             else:
                 return self.current_state, 1.00/100.00, True
-        else:
-            return self.current_state, 0.0, False
