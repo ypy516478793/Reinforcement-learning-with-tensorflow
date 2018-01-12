@@ -36,7 +36,8 @@ class DeepQNetwork:
     ):
         self.n_actions = n_actions
         self.n_features = n_features
-        self.n_new_features = n_features if meta else n_features + 1
+        self.n_goals = n_goals
+        self.n_new_features = n_features if n_goals == 1 else n_features + 1
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon = np.ones(n_goals) * e_greedy
@@ -112,13 +113,13 @@ class DeepQNetwork:
             with tf.variable_scope('train'):
                 self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
-    def store_transition(self, s, a, r, s_, g=None):
+    def store_transition(self, s, a, r, s_, goal=None):
         # if not hasattr(self, 'memory_counter'):
         #     self.memory_counter = 0
-        if g == None:
+        if self.n_goals == 1:
             transition = np.hstack((s, a, r, s_))
         else:
-            transition = np.hstack((s, g, a, r, s_, g))
+            transition = np.hstack((s, goal, a, r, s_, goal))
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
         self.memory[index, :] = transition
@@ -126,12 +127,14 @@ class DeepQNetwork:
 
     def choose_action(self, observation, goal=None):
         # to have batch dimension when feed into tf placeholder
-        if goal == None:
+        if self.n_goals == 1:
             observation = observation[np.newaxis, :]
+            epsilon_threshold = self.epsilon
         else:
             observation = np.append(observation, goal)[np.newaxis, :]
+            epsilon_threshold = self.epsilon[goal]
 
-        if np.random.uniform() > self.epsilon[goal]:
+        if np.random.uniform() > epsilon_threshold:
             # forward feed the observation and get q value for every actions
             actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation})
             action = np.argmax(actions_value)
@@ -172,22 +175,27 @@ class DeepQNetwork:
             goal_reached = False
         return in_reward, goal_reached
 
-    def anneal(self, steps=1, goal=0, adaptively=False, success=False):
-        if self.epsilon[goal] > 0.1:
+    def anneal(self, steps=1, goal=None, adaptively=False, success=False):
+        epsilon_threshold = self.epsilon if self.n_goals == 1 else self.epsilon[goal]
+        if epsilon_threshold > 0.1:
             if adaptively:
                 success_rate = self.goal_success[goal] / self.goal_attempts[goal]
                 if success_rate == 0:
-                    self.epsilon[goal] -= self.de_anneal * steps
+                    epsilon_threshold -= self.de_anneal * steps
                 else:
-                    self.epsilon[goal] = 1 - success_rate
+                    epsilon_threshold = 1 - success_rate
             else:
-                self.epsilon[goal] -= self.de_anneal * steps
+                epsilon_threshold -= self.de_anneal * steps
 
             if success:
-                self.epsilon[goal] -= self.de_anneal * 20
+                epsilon_threshold -= self.de_anneal * 20
 
-            if self.epsilon[goal] < 0.1:
-                self.epsilon[goal] = 0.1
+            if epsilon_threshold < 0.1:
+                epsilon_threshold = 0.1
+        if self.n_goals == 1:
+            self.epsilon = epsilon_threshold
+        else:
+            self.epsilon[goal] = epsilon_threshold
 
 
 if __name__ == '__main__':
