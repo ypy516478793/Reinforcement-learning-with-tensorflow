@@ -11,6 +11,8 @@ def run_MDP():
         state = env.reset()
         visits[id_episode][state] += 1
         goal = meta_controller.choose_action(state)
+        # meta_controller.check_state_exist(state)
+        # goal = 2
         controller.goal_attempts[goal] += 1
         done = False
 
@@ -60,6 +62,8 @@ def run_MDP():
             if not done:    # when goal is terminal, goal_reached = True & done = True
                 # choose a new goal
                 goal = meta_controller.choose_action(state)
+                # meta_controller.check_state_exist(state)
+                # goal = 2
                 controller.goal_attempts[goal] += 1
 
             total_extrinsic_reward[i_episode] = total_extrinsic_reward[i_episode-1] + extrinsic_reward
@@ -87,7 +91,7 @@ def plot_figures():
         plt.ylim(-0.01, 2)
         plt.title("S" + str(i))
         plt.grid(True)
-    plt.savefig("h_QL_MDP.png")
+    # plt.savefig("h_QL_MDP.png")
 
     # plot goal success rates
     plt.figure(2)
@@ -95,7 +99,7 @@ def plot_figures():
         plt.plot(x, goal_success[:, i] / goal_attempts[:, i])
     plt.xlim(1, 12)
     plt.title("Goals success rates")
-    plt.savefig("Goals_success_rates.png")
+    # plt.savefig("Goals_success_rates.png")
 
     # plot average reward from the environment
     plt.figure(3)
@@ -103,7 +107,7 @@ def plot_figures():
     average_reward = total_extrinsic_reward / x_episode
     plt.plot(x_episode, average_reward)
     plt.title("Average reward")
-    plt.savefig("Average_reward.png")
+    # plt.savefig("Average_reward.png")
 
     plt.show()
 
@@ -129,7 +133,7 @@ if __name__ == "__main__":
                                      learning_rate=0.00025,
                                      reward_decay=0.975,
                                      e_greedy=1,
-                                     e_decrement=(1 - 0.1) / 12000
+                                     e_decrement=(1 - 0.1) / 50000
                                      )
     run_MDP()
     for i in range(n_goals):

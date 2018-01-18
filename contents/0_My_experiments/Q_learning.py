@@ -11,7 +11,7 @@ from collections import defaultdict
 
 
 class QLearningTable:
-    def __init__(self, n_actions, n_goals=1, learning_rate=0.01, reward_decay=0.9, e_greedy=0.1, e_decrement=0.01):
+    def __init__(self, n_actions, n_goals=1, learning_rate=0.01, reward_decay=0.9, e_greedy=0.9, e_decrement=0.01):
         self.actions = list(range(n_actions))  # a list
         self.lr = learning_rate
         self.gamma = reward_decay
