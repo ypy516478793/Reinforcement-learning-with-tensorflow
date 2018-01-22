@@ -84,17 +84,26 @@ def run_MDP():
         # anneal epsilon greedy rate for meta_controller
         meta_controller.anneal()
 
-        if (i_episode + 1) % unit == 0:
-            if id_episode == 0:
-                for k in range(n_goals):
-                    goal_attempts[id_episode, k] = controller.goal_attempts[k]
-                    goal_success[id_episode, k] = controller.goal_success[k]
-            else:
-                for k in range(n_goals):
-                    goal_attempts[id_episode, k] = controller.goal_attempts[k] - \
-                                                   np.sum(goal_attempts[:id_episode, k])
-                    goal_success[id_episode, k] = controller.goal_success[k] - \
-                                                  np.sum(goal_success[:id_episode, k])
+        # if (i_episode + 1) % unit == 0:
+        #     if id_episode == 0:
+        #         for k in range(n_goals):
+        #             goal_attempts[id_episode, k] = controller.goal_attempts[k]
+        #             goal_success[id_episode, k] = controller.goal_success[k]
+        #     else:
+        #         for k in range(n_goals):
+        #             goal_attempts[id_episode, k] = controller.goal_attempts[k] - \
+        #                                            np.sum(goal_attempts[:id_episode, k])
+        #             goal_success[id_episode, k] = controller.goal_success[k] - \
+        #                                           np.sum(goal_success[:id_episode, k])
+
+        if (i_episode + 1) % (num_episodes / period) == 0:
+            id_period = i_episode // (num_episodes // period)
+            for k in range(n_goals):
+                goal_attempts[id_period, k] = controller.goal_attempts[k] - \
+                                               np.sum(goal_attempts[:id_period, k])
+                goal_success[id_period, k] = controller.goal_success[k] - \
+                                              np.sum(goal_success[:id_period, k])
+
 
 def one_hot(state):
     state_vector = np.zeros([n_features])
@@ -153,15 +162,15 @@ def plot_figures():
         plt.ylim(-0.01, 2)
         plt.title("S" + str(i))
         plt.grid(True)
-    plt.savefig("h_DQN_MDP.png")
+    # plt.savefig("h_DQN_MDP.png")
 
-    # plot goal success rates
-    plt.figure(2)
-    for i in range(6):
-        plt.plot(x, goal_success[:, i] / goal_attempts[:, i])
-    plt.xlim(1, 12)
-    plt.title("Goals success rates")
-    plt.savefig("Goals_success_rates_DQN.png")
+    # # plot goal success rates
+    # plt.figure(2)
+    # for i in range(6):
+    #     plt.plot(x, goal_success[:, i] / goal_attempts[:, i])
+    # plt.xlim(1, 12)
+    # plt.title("Goals success rates")
+    # plt.savefig("Goals_success_rates_DQN.png")
 
     # plot average reward from the environment
     plt.figure(3)
@@ -169,7 +178,7 @@ def plot_figures():
     average_reward = total_extrinsic_reward / x_episode
     plt.plot(x_episode, average_reward)
     plt.title("Average reward")
-    plt.savefig("Average_reward_DQN.png")
+    # plt.savefig("Average_reward_DQN.png")
 
     # plot learning cost history for controller and meta_controller
     plt.figure(4)
@@ -183,7 +192,50 @@ def plot_figures():
     plt.title("Meta_Controller learning cost")
     plt.ylabel("Cost")
     plt.xlabel("training steps")
-    plt.savefig("Meta_Controller_learning_cost_DQN.png")
+    # plt.savefig("Meta_Controller_learning_cost_DQN.png")
+    
+    # plot goal attempts ratio in different period
+    temp = np.sum(goal_attempts, 1)
+    temp = temp[:, np.newaxis]
+    temp = temp * np.ones(n_states)
+    goal_attempts_ratio = goal_attempts / temp
+    fig1, ax1 = plt.subplots()
+    index = np.arange(period)
+    bar_width = 0.15
+    opacity = 0.4
+    color = ['b', 'r', 'y', 'g', 'k', 'c']
+    # color = np.arctan(np.arange(n_states)) + 0.01
+    xticklabels = range(period)
+    for i in range(n_states):
+        ax1.bar(index + i * bar_width, goal_attempts_ratio[:, i], bar_width,
+                alpha=opacity, color=color[i], label='S'+str(i))
+    ax1.set_xlabel("Period")
+    ax1.set_title("Goal attempts ratio")
+    ax1.set_xticks(index + bar_width * (n_states - 1) / 2)
+    ax1.set_xticklabels(xticklabels)
+    # plt.savefig("Attempts_ratio_DQN.png")
+
+
+    # plot goal success ratio in different period
+    temp = np.sum(goal_success, 1)[:, np.newaxis]
+    temp = temp * np.ones(n_states)
+    goal_success_ratio = goal_success / temp
+    fig2, ax2 = plt.subplots()
+    index = np.arange(period)
+    bar_width = 0.15
+    opacity = 0.4
+    color = ['b', 'r', 'y', 'g', 'k', 'c']
+    # color = np.arctan(np.arange(n_states)) + 0.01
+    xticklabels = range(period)
+    for i in range(n_states):
+        ax2.bar(index + i * bar_width, goal_success_ratio[:, i], bar_width,
+                alpha=opacity, color=color[i], label='S' + str(i))
+    ax2.set_xlabel("Period")
+    ax2.set_title("Goal success ratio")
+    ax2.set_xticks(index + bar_width * (n_states - 1) / 2)
+    ax2.set_xticklabels(xticklabels)
+    # plt.savefig("Success_ratio_DQN.png")
+    
 
     plt.show()
 
@@ -191,14 +243,18 @@ def plot_figures():
 if __name__ == "__main__":
     env = MDP_env()
     n_actions = 2
+    n_states = 6
     n_features = 6
     n_goals = 6
     # n_goals = 1          ###############
-    num_episodes = 12000
-    unit = 1000
-    visits = np.zeros((12, 6))
-    goal_attempts = np.zeros((12, 6))
-    goal_success = np.zeros((12, 6))
+    num_episodes = 24000
+    unit = 2000
+    period = 4
+    goal_attempts = np.zeros((period, n_states))
+    goal_success = np.zeros((period, n_states))
+    visits = np.zeros((12, n_states))
+    # goal_attempts = np.zeros((12, 6))
+    # goal_success = np.zeros((12, 6))
     total_extrinsic_reward = np.zeros(num_episodes)
     # controller needs to choose actions under certain goal
     controller = DeepQNetwork(n_actions,
@@ -208,7 +264,7 @@ if __name__ == "__main__":
                               learning_rate=0.001,
                               reward_decay=0.975,
                               e_greedy=1,
-                              e_decrement=(1 - 0.1) / num_episodes,
+                              e_decrement=(1 - 0.1) / 12000,
                               output_graph=True
                               )
     # meta_controller's action sets are to choose different goals (default goal=0)
@@ -218,7 +274,7 @@ if __name__ == "__main__":
                                    learning_rate=0.001,
                                    reward_decay=0.975,
                                    e_greedy=1,
-                                   e_decrement=(1 - 0.1) / num_episodes,
+                                   e_decrement=(1 - 0.1) / 12000,
                                    meta=True
                                    )
     run_MDP()

@@ -133,7 +133,7 @@ class DeepQNetwork:
         # to have batch dimension when feed into tf placeholder
         if self.n_goals == 1:
             observation = observation[np.newaxis, :]
-            epsilon_threshold = self.epsilon
+            epsilon_threshold = self.epsilon[0]
         else:
             observation = np.append(observation, goal)[np.newaxis, :]
             epsilon_threshold = self.epsilon[goal]
@@ -181,7 +181,7 @@ class DeepQNetwork:
         return in_reward, goal_reached
 
     def anneal(self, steps=1, goal=None, adaptively=False, success=False):
-        epsilon_threshold = self.epsilon if self.n_goals == 1 else self.epsilon[goal]
+        epsilon_threshold = self.epsilon[0] if self.n_goals == 1 else self.epsilon[goal]
         if epsilon_threshold > 0.1:
             if adaptively:
                 success_rate = self.goal_success[goal] / self.goal_attempts[goal]
@@ -198,7 +198,7 @@ class DeepQNetwork:
             if epsilon_threshold < 0.1:
                 epsilon_threshold = 0.1
         if self.n_goals == 1:
-            self.epsilon = epsilon_threshold
+            self.epsilon[0] = epsilon_threshold
         else:
             self.epsilon[goal] = epsilon_threshold
 
